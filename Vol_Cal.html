@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8">
+    <title>회전체</title>
+    <style>
+      
+      .content-container {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+      }
+
+      .canvas-container {
+        margin-top: 20px;
+        margin-bottom: 20px;
+        border: 5px solid #800080;
+        border-radius: 0.5rem;
+        box-shadow: 0 0 20px #800080;
+      }
+    </style>
+  </head>
+  <body style="background-color:rgba(205, 178, 228, 0.17);">
+    <div class="stage1" style="opacity: 1; display: block;">
+      <div class="content-container">
+        <h1>재밌는 부루마블 보드게임!:)</h1>
+        <!--그리기-->
+        <div class="canvas-container">
+          <!--캔버스-->
+          <canvas id="canvas1" width="640rem" height="480rem"></canvas>
+        </div>
+        <div>
+          <label for="drawing_type">선택:</label>
+          <select id="drawing_type">
+            <option value="line">직선</option>
+            <option value="curve">곡선</option>
+          </select>
+          <!--길이 입력-->
+          <input type="range" id="num" value="120" min="40" max="200" step="40">
+          <label for="num" id="num_label">3</label>
+          <button onclick="draw()">그리기</button>
+          <button onclick="stage = 2; document.getElementsByClassName('stage1')[0].style.opacity = 0; document.getElementsByClassName('stage2')[0].style.opacity = 1; document.getElementsByClassName('stage2')[0].style.display = 'block'; document.getElementsByClassName('stage1')[0].style.display = 'none'; reset_canvas()">다음</button>
+        </div>
+      </div>
+    </div>
+    <div class="stage2" style="opacity: 0; display: none;">
+      <div class="content-container">
+        <!--회전 축 정하기-->
+        <div class="canvas-container">
+          <!--캔버스-->
+          <canvas id="canvas2" width="800" height="600"></canvas>
+        </div>
+        <div>
+          <button onclick="stage = 3; document.getElementsByClassName('stage2')[0].style.opacity = 0; document.getElementsByClassName('stage3')[0].style.opacity = 1; document.getElementsByClassName('stage3')[0].style.display = 'block'; document.getElementsByClassName('stage2')[0].style.display = 'none'; start3();">다음</button>
+        </div>
+      </div>
+    </div>
+    <div class="stage3" style="opacity: 0; display: none;">
+      <div class="content-container">
+        <!--회전체 나타냄, 부피 출력-->
+        <div class="wrapper" id="container">
+          <!--canvas-->
+          <canvas id="canvas3" width="800" height="600"></canvas>
+        </div>
+        <div>
+          <label id="vol_label">부피: </label>
+          <button onclick="location.reload()">다시하기</button>
+        </div>
+      </div>
+    </div>
+    <script type="module">
+      var stage = 1;
+      var num = 120;
+      var x = 320;
+      var y = 240;
+      var dots = [];
+      dots.push({
+        x: x,
+        y: y
+      });
+      let canvas1 = document.getElementById('canvas1');
+      let ctx1 = canvas1.getContext('2d');
+
+      function clearCanvas(canvas, ctx) {
+        let tmp = ctx.fillStyle;
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = tmp;
+      }
+
+      function dot(pos, ctx) {
+        let tmp = ctx.fillStyle;
+        ctx.fillStyle = 'black';
+        ctx.beginPath();
+        ctx.arc(pos.x, pos.y, 3, 0, Math.PI * 2, true);
+        ctx.fill();
+        ctx.closePath();
+        ctx.fillStyle = tmp;
+      }
+
+      function line(pos1, pos2, ctx) {
+        let tmp = ctx.strokeStyle;
+        ctx.lineWidth = 6;
+        ctx.beginPath();
+        ctx.moveTo(pos1.x, pos1.y);
+        ctx.lineTo(pos2.x, pos2.y);
+        ctx.stroke();
+        ctx.closePath();
+        ctx.strokeStyle = tmp;
+      }
+      /*function drawCurveFromDots(dots, context, length) {
+        // 여기서 dots 배열을 사용하여 곡선을 그립니다.
+        context.clearRect(0, 0, canvas1.width, canvas1.height);
+        context.strokeStyle = 'blue';
+        context.beginPath();
+        context.moveTo(dots[0].x, dots[0].y);
+        for (let i = 1; i < dots.length; i++) {
+          context.lineTo(dots[i].x, dots[i].y);
+        }
+        context.stroke();
+        context.closePath();
+      }*/
+      clearCanvas(canvas1, ctx1)
+      dot(dots[0], ctx1)
+      let distance_sum=0;
+      let selectedValue;
+      let last_point={
+        x: 320,
+        y: 240
+      };
+      window.draw = () => {
+        selectedValue = document.getElementById('drawing_type').value;
+        let released=true;
+        console.log("drawfunc")
+        if(selectedValue=="line"){
+          if(selectedValue==="curve")
+              return;
+          // until mouse release
+          num = document.getElementById('num').value;
+          released = false;
+          canvas1.addEventListener('mousemove', function(e) {
+            if(selectedValue==="curve")
+              return;
+            if (released) {
+              return;
+            }
+            clearCanvas(canvas1, ctx1)
+            let pos = {
+              x: e.offsetX,
+              y: e.offsetY
+            };
+            for (let i = 0; i < dots.length; i++) {
+              dot(dots[i], ctx1);
+            }
+            for (let i = 0; i < dots.length - 1; i++) {
+              line(dots[i], dots[i + 1], ctx1);
+            }
+            ctx1.beginPath();
+            ctx1.strokeStyle = 'blue';
+            ctx1.arc(dots[dots.length - 1].x, dots[dots.length - 1].y, num, 0, Math.PI * 2, true);
+            ctx1.stroke();
+            ctx1.closePath();
+            if (num ** 2 > (pos.x - dots[dots.length - 1].x) ** 2 + (pos.y - dots[dots.length - 1].y) ** 2) {
+              ctx1.strokeStyle = 'bule';
+            } else {
+              ctx1.strokeStyle = 'red';
+            }
+            dot(pos, ctx1);
+            line(dots[dots.length - 1], pos, ctx1);
+            ctx1.strokeStyle = 'black';
+          });
+          /*canvas1.addEventListener('touchmove', function(e) {
+            if (released) {
+              return;
+            }
+            clearCanvas(canvas1, ctx1)
+            let pos = {
+              x: e.touches[0].clientX - canvas1.offsetLeft,
+              y: e.touches[0].clientY - canvas1.offsetTop
+            };
+            for (let i = 0; i < dots.length; i++) {
+              dot(dots[i], ctx1);
+            }
+            for (let i = 0; i < dots.length - 1; i++) {
+              line(dots[i], dots[i + 1], ctx1);
+            }
+            ctx1.beginPath();
+            ctx1.strokeStyle = 'blue';
+            ctx1.arc(dots[dots.length - 1].x, dots[dots.length - 1].y, num, 0, Math.PI * 2, true);
+            ctx1.stroke();
+            ctx1.closePath();
+            if (num ** 2 > (pos.x - dots[dots.length - 1].x) ** 2 + (pos.y - dots[dots.length - 1].y) ** 2) {
+              ctx1.strokeStyle = 'bule';
+            } else {
+              ctx1.strokeStyle = 'red';
+            }
+            dot(pos, ctx1);
+            line(dots[dots.length - 1], pos, ctx1);
+            ctx1.strokeStyle = 'black';
+          });*/
+          canvas1.addEventListener('mousedown', function(e) {
+            if(selectedValue=="curve")
+              return;
+            if (num ** 2 < (e.offsetX - dots[dots.length - 1].x) ** 2 + (e.offsetY - dots[dots.length - 1].y) ** 2) {
+              return;
+            }
+            released = false;
+            let pos = {
+              x: e.offsetX,
+              y: e.offsetY
+            };
+            dots.push(pos);
+            clearCanvas(canvas1, ctx1)
+            for (let i = 0; i < dots.length; i++) {
+              dot(dots[i], ctx1);
+            }
+            for (let i = 0; i < dots.length - 1; i++) {
+              line(dots[i], dots[i + 1], ctx1);
+            }
+          });
+          /*canvas1.addEventListener('touchdown', function(e) {
+            if(selectedValue=="curve")
+              return;
+            if (num ** 2 < (e.touches[0].offsetX - dots[dots.length - 1].x) ** 2 + (e.touches[0].offsetY - dots[dots.length - 1].y) ** 2) {
+              return;
+            }
+            released = false;
+            let pos = {
+              x: e.touches[0].clientX,
+              y: e.touches[0].clientY
+            };
+            dots.push(pos);
+            clearCanvas(canvas1, ctx1)
+            for (let i = 0; i < dots.length; i++) {
+              dot(dots[i], ctx1);
+            }
+            for (let i = 0; i < dots.length - 1; i++) {
+              line(dots[i], dots[i + 1], ctx1);
+            }
+          });*/
+          canvas1.addEventListener('mouseup', function(e) {
+            if(selectedValue==="curve")
+              return;
+            if (num ** 2 < (e.offsetX - dots[dots.length - 1].x) ** 2 + (e.offsetY - dots[dots.length - 1].y) ** 2) {
+              return;
+            }
+            console.log("**")
+            released = true;
+            clearCanvas(canvas1, ctx1)
+            for (let i = 0; i < dots.length; i++) {
+              dot(dots[i], ctx1);
+            }
+            for (let i = 0; i < dots.length - 1; i++) {
+              line(dots[i], dots[i + 1], ctx1);
+            }
+            last_point=dots[dots.length-1];
+          });
+          /*canvas1.addEventListener('touchup', function(e) {
+            if (num ** 2 < (e.touches[0].clientX - dots[dots.length - 1].x) ** 2 + (e.touches[0].clientY - dots[dots.length - 1].y) ** 2) {
+              return;
+            }
+            released = true;
+            clearCanvas(canvas1, ctx1)
+            for (let i = 0; i < dots.length; i++) {
+              dot(dots[i], ctx1);
+            }
+            for (let i = 0; i < dots.length - 1; i++) {
+              line(dots[i], dots[i + 1], ctx1);
+            }
+          });*/
+        }else if (selectedValue == "curve"){
+          num = document.getElementById('num').value;
+          released = true;
+          console.log(released);
+          canvas1.addEventListener('mousemove', function(e) {
+            console.log(released);
+            if (released) {
+              return;
+            }
+            if(selectedValue==="line")
+              return;
+
+            let pos = {
+              x: e.offsetX,
+              y: e.offsetY
+            };
+
+            let lastDot = dots[dots.length - 1];
+            let dx = pos.x - lastDot.x;
+            let dy = pos.y - lastDot.y;
+            let distance = Math.sqrt(dx * dx + dy * dy);
+
+            // 곡선 길이가 num을 초과하면 그리지 않음
+            if (distance >= num) {
+              released = true;  // 그리기 종료
+              return;
+            }
+
+            // 5px 간격으로 점을 찍음
+            if (distance >= 5 ) {
+              let numDots = Math.floor(distance / 5);
+              let stepX = dx / numDots;
+              let stepY = dy / numDots;
+
+              for (let i = 0; i < numDots; i++) {
+                lastDot.x += stepX;
+                lastDot.y += stepY;
+                dots.push({ x: lastDot.x, y: lastDot.y });
+                dot(lastDot, ctx1);
+                
+                // 곡선 길이가 num을 초과하면 그리기 종료
+                distance_sum+=5;
+                if(distance_sum>=num-5)
+                  canvas1.dispatchEvent(new MouseEvent('mouseup'));
+              }
+            }
+            dot(pos, ctx1);
+            line(dots[dots.length - 1], pos, ctx1);
+            ctx1.strokeStyle = 'black';
+          });
+          canvas1.addEventListener('mousedown', function(e) {
+            if(selectedValue==="line")
+              return;
+            if(4<(e.offsetX-last_point.x)**2+(e.offsetY-last_point.y)**2)
+              return;
+            if (num ** 2 < (e.offsetX - dots[dots.length - 1].x) ** 2 + (e.offsetY - dots[dots.length - 1].y) ** 2) {
+              return;
+            }
+            released = false;
+            distance_sum=0;
+            let pos = {
+              x: e.offsetX,
+              y: e.offsetY
+            };
+            dots.push(pos);
+            clearCanvas(canvas1, ctx1)
+            for (let i = 0; i < dots.length; i++) {
+              dot(dots[i], ctx1);
+            }
+            for (let i = 0; i < dots.length - 1; i++) {
+              line(dots[i], dots[i + 1], ctx1);
+            }
+          });
+          canvas1.addEventListener('mouseup', function(e) {
+            if(selectedValue==="line")
+              return;
+            console.log("*");
+            released = true;
+            clearCanvas(canvas1, ctx1)
+            for (let i = 0; i < dots.length; i++) {
+              dot(dots[i], ctx1);
+            }
+            for (let i = 0; i < dots.length - 1; i++) {
+              line(dots[i], dots[i + 1], ctx1);
+            }
+            last_point=dots[dots.length-1];
+            released=true;
+          });
+        }
+      }
+      document.getElementById('num').addEventListener('mousemove', function(e) {
+        num = e.target.value;
+        document.getElementById("num_label").innerText = num / 40;
+      });
+      let canvas2 = document.getElementById('canvas2');
+      let ctx2 = canvas2.getContext('2d');
+      let sp = {
+        x: 0,
+        y: 0
+      };
+      let ep = {
+        x: 0,
+        y: 0
+      };
+      let is_dragging = false;
+      canvas2.addEventListener('mousedown', function(e) {
+        is_dragging = true;
+        sp = {
+          x: e.offsetX,
+          y: e.offsetY
+        };
+      });
+      canvas2.addEventListener('touchdown', function(e) {
+        is_dragging = true;
+        sp = {
+          x: e.touches[0].clientX,
+          y: e.touches[0].clientY
+        };
+      });
+      canvas2.addEventListener('mouseup', function(e) {
+        is_dragging = false;
+        ep = {
+          x: e.offsetX,
+          y: e.offsetY
+        };
+        clearCanvas(canvas2, ctx2)
+        for (let i = 0; i < dots.length; i++) {
+          dot(dots[i], ctx2);
+        }
+        for (let i = 0; i < dots.length; i++) {
+          line(dots[i], dots[(i + 1) % dots.length], ctx2);
+        }
+        line(sp, ep, ctx2);
+      });
+      canvas2.addEventListener('touchup', function(e) {
+        is_dragging = false;
+        ep = {
+          x: e.touches[0].clientX,
+          y: e.touches[0].clientY
+        };
+        clearCanvas(canvas2, ctx2)
+        for (let i = 0; i < dots.length; i++) {
+          dot(dots[i], ctx2);
+        }
+        for (let i = 0; i < dots.length; i++) {
+          line(dots[i], dots[(i + 1) % dots.length], ctx2);
+        }
+        line(sp, ep, ctx2);
+      });
+      canvas2.addEventListener('mousemove', function(e) {
+        if (!is_dragging) {
+          return;
+        }
+        clearCanvas(canvas2, ctx2)
+        for (let i = 0; i < dots.length; i++) {
+          dot(dots[i], ctx2);
+        }
+        for (let i = 0; i < dots.length; i++) {
+          line(dots[i], dots[(i + 1) % dots.length], ctx2);
+        }
+        ctx2.strokeStyle = 'blue';
+        line(sp, {
+          x: e.offsetX,
+          y: e.offsetY
+        }, ctx2);
+        ctx2.strokeStyle = 'black';
+      });
+      canvas2.addEventListener('touchmove', function(e) {
+        if (!is_dragging) {
+          return;
+        }
+        clearCanvas(canvas2, ctx2)
+        for (let i = 0; i < dots.length; i++) {
+          dot(dots[i], ctx2);
+        }
+        for (let i = 0; i < dots.length; i++) {
+          line(dots[i], dots[(i + 1) % dots.length], ctx2);
+        }
+        ctx2.strokeStyle = 'blue';
+        line(sp, {
+          x: e.touches[0].clientX,
+          y: e.touches[0].clientY
+        }, ctx2);
+        ctx2.strokeStyle = 'black';
+      });
+      window.reset_canvas = () => {
+        sp = {
+          x: 0,
+          y: 0
+        };
+        ep = {
+          x: 0,
+          y: 0
+        };
+        clearCanvas(canvas2, ctx2)
+        for (let i = 0; i < dots.length; i++) {
+          dot(dots[i], ctx2);
+        }
+        for (let i = 0; i < dots.length; i++) {
+          line(dots[i], dots[(i + 1) % dots.length], ctx2);
+        }
+      }
+
+      function affine_transform(pos, sp, ep) {
+        let x = pos.x;
+        let y = pos.y;
+        let m = (ep.y - sp.y) / (ep.x - sp.x);
+        let x_ = x * m / Math.sqrt(m ** 2 + 1) - y / Math.sqrt(m ** 2 + 1) - ep.x * m / Math.sqrt(m ** 2 + 1) + ep.y / Math.sqrt(m ** 2 + 1);
+        let y_ = x / Math.sqrt(m ** 2 + 1) + y * m / Math.sqrt(m ** 2 + 1);
+        return {
+          x: x_ / 50,
+          y: y_ / 50
+        };
+      }
+      var cont = document.getElementById('container');
+      var canvas = document.getElementById("canvas3");
+      var cxt = canvas.getContext("2d");
+      var nodes = [];
+      var nodesAxes = [];
+      var pixelWidth = 2;
+      var scale = 24;
+      var xMin = -9;
+      var xMax = 9;
+      var yMin = -9;
+      var yMax = 9;
+      var rotx = 300 * Math.PI / 180;
+      var roty = 25 * Math.PI / 180;
+      var rotz = 0 * Math.PI / 180;
+      var mouseX = 0,
+        mouseY = 0,
+        pmouseX, pmouseY;
+      var mouseDown = false;
+
+      function handleMousedown(e) {
+        if (!mouseDown) mouseDown = true;
+        canvas.style.cursor = "grabbing";
+        var x = parseInt(e.pageX) || parseInt(e.changedTouches[0].pageX);
+        var y = parseInt(e.pageY) || parseInt(e.changedTouches[0].pageY);
+        mouseX = x;
+        mouseY = y;
+        e.preventDefault();
+      };
+
+      function handleMove(e) {
+        var sensetivity = 100;
+        pmouseX = mouseX;
+        pmouseY = mouseY;
+        var x = parseInt(e.pageX) || parseInt(e.changedTouches[0].pageX);
+        var y = parseInt(e.pageY) || parseInt(e.changedTouches[0].pageY);
+        if (Math.abs(x - pmouseX) >= 1) {
+          mouseX = x;
+        } else {
+          mouseX = pmouseX
+        }
+        if (Math.abs(y - pmouseY) >= 1) {
+          mouseY = y;
+        } else {
+          mouseY = pmouseY
+        }
+        if (mouseDown === true) {
+          rotx = rotx + (mouseY - pmouseY) / sensetivity;
+          roty = roty + (mouseX - pmouseX) / sensetivity;
+          drawFunction();
+        }
+        e.preventDefault();
+      };
+
+      function initial() {
+        sizeCanvas();
+        drawFunction();
+      };
+
+      function sizeCanvas() {
+        var cs = getComputedStyle(cont);
+        canvas.width = parseInt(cs.getPropertyValue('width'), 10);
+        canvas.height = parseInt(cs.getPropertyValue('height'), 10);
+        cxt.translate(canvas.width / 2, canvas.height / 2);
+      };
+
+      function drawFunction() {
+        cxt.clearRect(-canvas.width, -canvas.height, 2 * canvas.width, 2 * canvas.height);
+        var i = 0;
+        for (let k = 0; k < 80; k++) {
+          for (let j = 0; j < dots.length; j++) {
+            nodes[i] = {
+              x: dots[j].x * Math.cos(k / 40 * Math.PI),
+              y: dots[j].y,
+              z: dots[j].x * Math.sin(k / 40 * Math.PI)
+            };
+            ++i;
+          }
+        }
+        nodesAxes[0] = {
+          x: 0,
+          y: 0,
+          z: 0
+        };
+        nodesAxes[1] = {
+          x: xMax,
+          y: 0,
+          z: 0
+        };
+        nodesAxes[2] = {
+          x: 0,
+          y: yMax,
+          z: 0
+        };
+        nodesAxes[3] = {
+          x: 0,
+          y: 0,
+          z: xMax
+        };
+        rotateX3D(rotx);
+        rotateY3D(roty);
+        rotateZ3D(rotz);
+        cxt.fillStyle = "#009966";
+        cxt.strokeStyle = "#009966";
+        let k = 0;
+        for (let i = 0; i < 80; i++) {
+          for (let j = 0; j < dots.length; j++) {
+            cxt.fillRect(nodes[k] * scale, nodes[k] * scale, pixelWidth, pixelWidth);
+            cxt.beginPath();
+            cxt.moveTo(nodes[k].x * scale, nodes[k].y * scale);
+            let next_k = k + 1;
+            if ((next_k) % dots.length == 0) {
+              next_k -= dots.length;
+            }
+            cxt.lineTo(nodes[next_k].x * scale, nodes[next_k].y * scale);
+            cxt.stroke();
+            cxt.closePath();
+            cxt.beginPath();
+            cxt.moveTo(nodes[k].x * scale, nodes[k].y * scale);
+            next_k = (k + dots.length) % (dots.length * 80);
+            //console.log(k, next_k)
+            cxt.lineTo(nodes[next_k].x * scale, nodes[next_k].y * scale);
+            cxt.stroke();
+            k++;
+          }
+        }
+        cxt.fillStyle = "black";
+        cxt.strokeStyle = "black"
+        cxt.beginPath();
+        cxt.moveTo((nodesAxes[0].x * 2 - nodesAxes[2].x) * scale, (nodesAxes[0].y * 2 - nodesAxes[2].y) * scale);
+        cxt.lineTo(nodesAxes[2].x * scale, nodesAxes[2].y * scale);
+        cxt.stroke();
+        cxt.fillText('y', nodesAxes[2].x * scale, nodesAxes[2].y * scale);
+      };
+
+      function rotateZ3D(theta) {
+        var sinTheta = Math.sin(theta);
+        var cosTheta = Math.cos(theta);
+        for (var n = 0; n < nodes.length; n++) {
+          var node = nodes[n];
+          var x = node.x;
+          var y = node.y;
+          node.x = x * cosTheta - y * sinTheta;
+          node.y = y * cosTheta + x * sinTheta;
+        }
+        for (n = 0; n < nodesAxes.length; n++) {
+          node = nodesAxes[n];
+          x = node.x;
+          y = node.y;
+          node.x = x * cosTheta - y * sinTheta;
+          node.y = y * cosTheta + x * sinTheta;
+        }
+      };
+
+      function rotateY3D(theta) {
+        var sinTheta = Math.sin(-theta);
+        var cosTheta = Math.cos(-theta);
+        for (var n = 0; n < nodes.length; n++) {
+          var node = nodes[n];
+          var x = node.x;
+          var z = node.z;
+          node.x = x * cosTheta - z * sinTheta;
+          node.z = z * cosTheta + x * sinTheta;
+        }
+        for (n = 0; n < nodesAxes.length; n++) {
+          node = nodesAxes[n];
+          x = node.x;
+          z = node.z;
+          node.x = x * cosTheta - z * sinTheta;
+          node.z = z * cosTheta + x * sinTheta;
+        }
+      };
+
+      function rotateX3D(theta) {
+        var sinTheta = Math.sin(-theta);
+        var cosTheta = Math.cos(-theta);
+        for (var n = 0; n < nodes.length; n++) {
+          var node = nodes[n];
+          var y = node.y;
+          var z = node.z;
+          node.y = y * cosTheta - z * sinTheta;
+          node.z = z * cosTheta + y * sinTheta;
+        }
+        for (n = 0; n < nodesAxes.length; n++) {
+          node = nodesAxes[n];
+          y = node.y;
+          z = node.z;
+          node.y = y * cosTheta - z * sinTheta;
+          node.z = z * cosTheta + y * sinTheta;
+        }
+      };
+      function volume_calcul(point1, point2)
+      {
+        console.log(point1, point2);
+        let h=point2.y-point1.y;
+        console.log(h);
+        let R=point2.x;
+        let r=point1.x;
+        let V=1/3*Math.PI*h*Math.abs(R**2+R*r+r**2);
+        return V;
+      }
+      window.start3 = () => {
+        dots = dots.map((pos) => {
+          return affine_transform(pos, sp, ep);
+        });
+        let y_mean = 0;
+        for (let i = 0; i < dots.length; i++) {
+          y_mean += dots[i].y;
+        }
+        y_mean /= dots.length;
+        for (let i = 0; i < dots.length; i++) {
+          dots[i].y -= y_mean;
+        }
+        for (let i = 0; i < dots.length; i++) {
+          xMax = Math.max(xMax, Math.abs(dots[i].x));
+          yMax = Math.max(yMax, Math.abs(dots[i].y));
+        }
+        xMax += 1;
+        yMax += 1;
+        xMin = -xMax;
+        yMin = -yMax;
+        let volume = 0;
+
+        for(let i=0; i<dots.length-2; i++){
+          volume+=volume_calcul(dots[i], dots[i+1]);
+        }
+        volume+=volume_calcul(dots[dots.length-1], dots[0]);
+        let volume_label = document.getElementById('vol_label');
+        volume_label.innerText += Math.abs(volume*2);
+        cxt.strokeStyle = "#000000";
+        cxt.lineWidth = 1;
+        cxt.lineCap = "round";
+        cxt.lineJoin = "round";
+        cxt.font = 'normal 16px Arial';
+        sizeCanvas();
+        drawFunction();
+        cont.addEventListener("mousedown", handleMousedown, false);
+        cont.addEventListener("touchstart", handleMousedown, false);
+        document.addEventListener("mouseup", function(e) {
+          if (mouseDown) mouseDown = false;
+          canvas.style.cursor = "grab";
+        }, false);
+        cont.addEventListener("mousemove", handleMove, false);
+        cont.addEventListener("touchmove", handleMove, false);
+        window.addEventListener("resize", initial);
+      }
+    </script>
+  </body>
+</html>
